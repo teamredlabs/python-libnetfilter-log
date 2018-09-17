@@ -2,7 +2,7 @@
 
 Python wrapper for `libnetfilter_log`.
 
-Unlike other wrappers for `libnetfilter_log`, this implementation doesn't perform the `recv` loop for you. It simply wraps `libnetfilter_log` structures in convenient Python objects and gives you more control over calls to `libnetfilter_log` functions. This allows you to use `libnetfilter_log` with the `gevent` package, which isn't possible with other Python `libnetfilter_log` wrappers.
+Unlike other wrappers for `libnetfilter_log`, this implementation doesn't perform the `recv` loop for you. It simply wraps `libnetfilter_log` structures in convenient Python objects and gives you more control over calls to `libnetfilter_log` functions. This allows you to use `libnetfilter_log` with the `gevent` package and stop the `recv` loop using any method you want, which isn't possible with other Python `libnetfilter_log` wrappers.
 
 ## Usage
 
@@ -125,14 +125,14 @@ Bind the handle to a given protocol family. Wraps around the `nflog_bind_pf` fun
 
 #### `NetfilterLogHandle.unbind_pf(family)`
 
-Unnind the handle to a given protocol family. Wraps around the `nflog_unbind_pf` function.
+Unbind the handle from a given protocol family. Wraps around the `nflog_unbind_pf` function.
 
 **Parameters**
-* `family`: protocol family to bind to the handle
+* `family`: protocol family to unbind from the handle
 
 #### `NetfilterLogHandle.bind_group(number)`
 
-Bind the handle to a specific group number. Wraps around the `nflog_bind_group` function.
+Create a new group handle that is bound to the specified group number. Wraps around the `nflog_bind_group` function.
 
 **Parameters**
 * `number`: the number of the group to bind to
@@ -209,7 +209,7 @@ Set the size of the nflog buffer for this group. Wraps around the `nflog_set_nlb
 
 Set the nflog flags for this group. Wraps around the `nflog_set_flags` function.
 
-There are two existing flags:
+The `flag` parameter should be one of the following:
 * `libnetfilterlog.NFULNL_CFG_F_SEQ`
 * `libnetfilterlog.NFULNL_CFG_F_SEQ_GLOBAL`
 
@@ -240,7 +240,7 @@ Get the hardware link layer header. Wraps around the `nflog_get_msg_packet_hwhdr
 
 #### `NetfilterLogData.get_packet_hw()`
 
-Get hardware address. Wraps around the `nflog_get_packet_hw` function.
+Get the hardware address. Wraps around the `nflog_get_packet_hw` function.
 
 **Returns**
 * The hardware address associated with the given packet
@@ -257,7 +257,7 @@ Get the packet mark. Wraps around the `nflog_get_nfmark` function.
 Get the packet timestamp. Wraps around the `nflog_get_timestamp` function.
 
 **Returns**
-* A tuple containing the timestamp's seconds and microseconds components respectively
+* A tuple containing the timestamp's seconds and microseconds component respectively
 
 #### `NetfilterLogData.get_indev()`
 

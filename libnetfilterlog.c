@@ -3,6 +3,8 @@
 
 #include <string.h>
 #include <sys/time.h>
+
+#include <linux/netfilter.h>
 #include <libnetfilter_log/libnetfilter_log.h>
 
 // START: NetfilterLogData
@@ -576,7 +578,7 @@ static PyMethodDef libnetfilterlog_methods[] = {
     {NULL}
 };
 
-PyMODINIT_FUNC initlibnetfilterlog(void) {
+PyMODINIT_FUNC initlibnetfilterlog (void) {
     PyObject* module;
 
     if (PyType_Ready(&NetfilterLogDataType) < 0)
@@ -598,9 +600,6 @@ PyMODINIT_FUNC initlibnetfilterlog(void) {
 
     Py_INCREF((PyObject*) &NetfilterLogHandleType);
     PyModule_AddObject(module, "NetfilterLogHandle", (PyObject*) &NetfilterLogHandleType);
-
-    PyModule_AddIntConstant(module, "NFULA_MAX", NFULA_MAX);
-    PyModule_AddIntConstant(module, "NFULA_CFG_MAX", NFULA_CFG_MAX);
 
     PyModule_AddIntConstant(module, "NFULNL_COPY_NONE", NFULNL_COPY_NONE);
     PyModule_AddIntConstant(module, "NFULNL_COPY_META", NFULNL_COPY_META);
