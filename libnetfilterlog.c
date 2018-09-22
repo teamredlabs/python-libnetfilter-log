@@ -39,7 +39,9 @@ static PyObject* NetfilterLogData_get_msg_packet_hwhdr (NetfilterLogData* self) 
 
 static PyObject* NetfilterLogData_get_packet_hw (NetfilterLogData* self) {
     struct nfulnl_msg_packet_hw* msg_packet_hw = nflog_get_packet_hw(self->data);
-    return PyString_FromStringAndSize((char*) msg_packet_hw->hw_addr, 8);
+    if (msg_packet_hw)
+        return PyString_FromStringAndSize((char*) msg_packet_hw->hw_addr, 8);
+    Py_RETURN_NONE;
 }
 
 static PyObject* NetfilterLogData_get_nfmark (NetfilterLogData* self) {
