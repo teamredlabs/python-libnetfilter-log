@@ -236,7 +236,7 @@ static int NetfilterLogGroupHandle_callback (struct nflog_g_handle *gh, struct n
 
         data_object->data = nfd;
         args = PyTuple_Pack(1, data_object);
-        PyObject_CallObject(self->callback, args);
+        Py_DECREF(PyObject_CallObject(self->callback, args));
         Py_DECREF(args);
         Py_DECREF(data_object);
     }
