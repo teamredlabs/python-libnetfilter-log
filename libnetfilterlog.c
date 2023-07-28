@@ -1,6 +1,7 @@
 #include <Python.h>
 #include <structmember.h>
 
+#include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
 
@@ -415,12 +416,18 @@ static PyTypeObject NetfilterLogGroupHandleType = {
 typedef struct {
     PyObject_HEAD
     struct nflog_handle* handle;
+    int recv_fd;
+    ssize_t recv_buflen;
+    char* recv_buffer;
 } NetfilterLogHandle;
 
 static PyObject* NetfilterLogHandle_new (PyTypeObject* type, PyTupleObject* args) {
     NetfilterLogHandle* self;
     self = (NetfilterLogHandle*) type->tp_alloc(type, 0);
     self->handle = NULL;
+    self->recv_fd = 0;
+    self->recv_buflen = 0;
+    self->recv_buffer = NULL;
     return (PyObject*) self;
 }
 
@@ -490,6 +497,74 @@ static PyObject* NetfilterLogHandle_handle_packet(NetfilterLogHandle* self, PyTu
     Py_RETURN_NONE;
 }
 
+static PyObject* NetfilterLogHandle_recv_alloc (NetfilterLogHandle* self, PyTupleObject* args) {
+    int fd; uint32_t size; char* buffer;
+
+    if (!PyArg_ParseTuple((PyObject*) args, "I", &size)) {
+        PyErr_SetString(PyExc_ValueError, "Parameters must be (uint32_t size)");
+        return NULL;
+    }
+
+    if (self->recv_fd != 0 || self->recv_buflen != 0 || self->recv_buffer != NULL) {
+        PyErr_SetString(PyExc_ValueError, "Already called recv_alloc");
+        return NULL;
+    }
+
+    fd = nflog_fd(self->handle);
+    buffer = (char*) malloc(size * sizeof(char));
+
+    self->recv_fd = fd;
+    self->recv_buflen = size;
+    self->recv_buffer = buffer;
+
+    Py_RETURN_NONE;
+}
+
+static PyObject* NetfilterLogHandle_recv_dealloc (NetfilterLogHandle* self) {
+    if (self->recv_fd == 0 && self->recv_buflen == 0 && self->recv_buffer == NULL) {
+        PyErr_SetString(PyExc_ValueError, "Nothing to recv_dealloc");
+        return NULL;
+    }
+
+    free(self->recv_buffer);
+
+    self->recv_fd = 0;
+    self->recv_buflen = 0;
+    self->recv_buffer = NULL;
+
+    Py_RETURN_NONE;
+}
+
+static PyObject* NetfilterLogHandle_recv_one_handle_packet (NetfilterLogHandle* self) {
+    int length;
+
+    if (self->recv_fd == 0 || self->recv_buflen == 0 || self->recv_buffer == NULL) {
+        PyErr_SetString(PyExc_ValueError, "Must call recv_alloc beforehand");
+        return NULL;
+    }
+
+    if ((length = recv(nflog_fd(self->handle), self->recv_buffer, self->recv_buflen, MSG_DONTWAIT)) >= 0) {
+        nflog_handle_packet(self->handle, self->recv_buffer, length);
+    }
+
+    return PyInt_FromLong((long) length);
+}
+
+static PyObject* NetfilterLogHandle_recv_mul_handle_packets (NetfilterLogHandle* self) {
+    int length;
+
+    if (self->recv_fd == 0 || self->recv_buflen == 0 || self->recv_buffer == NULL) {
+        PyErr_SetString(PyExc_ValueError, "Must call recv_alloc beforehand");
+        return NULL;
+    }
+
+    while ((length = recv(nflog_fd(self->handle), self->recv_buffer, self->recv_buflen, MSG_DONTWAIT)) >= 0) {
+        nflog_handle_packet(self->handle, self->recv_buffer, length);
+    }
+
+    Py_RETURN_NONE;
+}
+
 static PyObject* NetfilterLogHandle_fd (NetfilterLogHandle* self) {
     return PyInt_FromLong(nflog_fd(self->handle));
 }
@@ -511,6 +586,10 @@ static PyMethodDef NetfilterLogHandle_methods[] = {
     {"unbind_pf", (PyCFunction) NetfilterLogHandle_unbind_pf, METH_VARARGS, NULL},
     {"bind_group", (PyCFunction) NetfilterLogHandle_bind_group, METH_VARARGS, NULL},
     {"handle_packet", (PyCFunction) NetfilterLogHandle_handle_packet, METH_VARARGS, NULL},
+    {"recv_alloc", (PyCFunction) NetfilterLogHandle_recv_alloc, METH_VARARGS, NULL},
+    {"recv_dealloc", (PyCFunction) NetfilterLogHandle_recv_dealloc, METH_NOARGS, NULL},
+    {"recv_one_handle_packet", (PyCFunction) NetfilterLogHandle_recv_one_handle_packet, METH_NOARGS, NULL},
+    {"recv_mul_handle_packets", (PyCFunction) NetfilterLogHandle_recv_mul_handle_packets, METH_NOARGS, NULL},
     {"fd", (PyCFunction) NetfilterLogHandle_fd, METH_NOARGS, NULL},
     {"close", (PyCFunction) NetfilterLogHandle_close, METH_NOARGS, NULL},
     {NULL}
