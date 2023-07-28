@@ -3,6 +3,8 @@
 
 #include <stdlib.h>
 #include <string.h>
+
+#include <sys/socket.h>
 #include <sys/time.h>
 
 #include <linux/netfilter.h>
@@ -82,13 +84,19 @@ static PyObject* NetfilterLogData_get_physoutdev (NetfilterLogData* self) {
     return PyInt_FromLong((long) nflog_get_physoutdev(self->data));
 }
 
-static PyObject* NetfilterLogData_get_payload (NetfilterLogData* self) {
-    int length;
-    char* data;
+static PyObject* NetfilterLogData_get_payload (NetfilterLogData* self, PyTupleObject* args) {
+    uint32_t snaplen; int length; char* data;
+    if (!PyArg_ParseTuple((PyObject*) args, "I", &snaplen)) {
+        PyErr_SetString(PyExc_ValueError, "Parameters must be (uint32_t snaplen)");
+        return NULL;
+    }
     length = nflog_get_payload(self->data, &data);
     if (length < 0) {
         PyErr_SetString(PyExc_OSError, "Call to nflog_get_payload failed");
         return NULL;
+    }
+    if (0 < snaplen && snaplen < length) {
+        return PyString_FromStringAndSize(data, snaplen);
     }
     return PyString_FromStringAndSize(data, length);
 }
@@ -147,7 +155,7 @@ static PyMethodDef NetfilterLogData_methods[] = {
     {"get_physindev", (PyCFunction) NetfilterLogData_get_physindev, METH_NOARGS, NULL},
     {"get_outdev", (PyCFunction) NetfilterLogData_get_outdev, METH_NOARGS, NULL},
     {"get_physoutdev", (PyCFunction) NetfilterLogData_get_physoutdev, METH_NOARGS, NULL},
-    {"get_payload", (PyCFunction) NetfilterLogData_get_payload, METH_NOARGS, NULL},
+    {"get_payload", (PyCFunction) NetfilterLogData_get_payload, METH_VARARGS, NULL},
     {"get_prefix", (PyCFunction) NetfilterLogData_get_prefix, METH_NOARGS, NULL},
     {"get_uid", (PyCFunction) NetfilterLogData_get_uid, METH_NOARGS, NULL},
     {"get_gid", (PyCFunction) NetfilterLogData_get_gid, METH_NOARGS, NULL},
