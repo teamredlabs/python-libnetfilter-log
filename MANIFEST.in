@@ -1,0 +1,4 @@
+include libnetfilterlog.pyi
+include libnetfilterlog-stubs/__init__.py
+include README.md
+include LICENSE

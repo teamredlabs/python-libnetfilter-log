@@ -1,6 +1,23 @@
 """The setup.py script."""
 
-from distutils.core import setup, Extension
+import os
+
+from setuptools import setup, Extension
+from setuptools.command.build_py import build_py
+
+
+class libnetfilter_build_py(build_py):
+
+    def run(self):
+        build_py.run(self)
+        dest = os.path.join(
+            self.build_lib,
+            'libnetfilterlog-stubs',
+            '__init__.pyi',
+        )
+        self.mkpath(os.path.dirname(dest))
+        self.copy_file('libnetfilterlog.pyi', dest)
+
 
 setup(name="python-libnetfilter-log",
       version='0.0.1',
@@ -22,8 +39,9 @@ setup(name="python-libnetfilter-log",
                    'Topic :: Internet :: Log Analysis',
                    'Topic :: System :: Networking :: Monitoring'],
       keywords='libnetfilter libnetfilterlog netfilter nflog',
-      ext_modules=[Extension(
-          name="libnetfilterlog",
-          sources=["libnetfilterlog.c"],
-          libraries=["netfilter_log", "nfnetlink"]
-      )])
+      ext_modules=[Extension(name="libnetfilterlog",
+                             sources=["libnetfilterlog.c"],
+                             libraries=["netfilter_log", "nfnetlink"])],
+      cmdclass={'build_py': libnetfilter_build_py},
+      packages=['libnetfilterlog-stubs'],
+      zip_safe=False)
